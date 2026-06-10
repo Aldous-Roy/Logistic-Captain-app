@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
 class LoginViewModel(private val repository: AuthRepository) : ViewModel() {
 
     var employeeId by mutableStateOf("")
-    var pin by mutableStateOf("")
+    var pin by mutableStateOf("")  // kept as "pin" internally for UI binding compatibility
     var isLoading by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)
 
@@ -22,7 +22,7 @@ class LoginViewModel(private val repository: AuthRepository) : ViewModel() {
 
     fun onLoginClick() {
         if (employeeId.isBlank() || pin.isBlank()) {
-            errorMessage = "Please enter both Employee ID and PIN"
+            errorMessage = "Please enter both Employee ID and Password"
             return
         }
 
@@ -32,7 +32,6 @@ class LoginViewModel(private val repository: AuthRepository) : ViewModel() {
             try {
                 val response = repository.login(employeeId, pin)
                 if (response.isSuccessful && response.body()?.status == "success") {
-                    // Save token (using DataStore or SharedPreferences - to be implemented)
                     _loginSuccess.emit(true)
                 } else {
                     errorMessage = response.body()?.message ?: "Login failed. Please check your credentials."

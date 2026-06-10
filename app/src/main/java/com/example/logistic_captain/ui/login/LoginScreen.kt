@@ -126,7 +126,7 @@ fun LoginScreen(
             // PIN Input Section
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = "PIN",
+                    text = "Password",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = PremiumGreen,
@@ -136,7 +136,7 @@ fun LoginScreen(
                 OutlinedTextField(
                     value = viewModel.pin,
                     onValueChange = { viewModel.pin = it },
-                    placeholder = { Text("Enter your PIN", color = PremiumGreenLight.copy(alpha = 0.6f)) },
+                    placeholder = { Text("Enter your password", color = PremiumGreenLight.copy(alpha = 0.6f)) },
                     leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = PremiumGreen) },
                     trailingIcon = {
                         val image = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff
@@ -145,7 +145,7 @@ fun LoginScreen(
                         }
                     },
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     shape = RoundedCornerShape(16.dp),
@@ -217,7 +217,7 @@ fun LoginScreen(
                     color = PremiumGreenLight.copy(alpha = 0.5f)
                 )
                 Text(
-                    text = "Forgot PIN?",
+                    text = "Forgot Password?",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = PremiumGreen

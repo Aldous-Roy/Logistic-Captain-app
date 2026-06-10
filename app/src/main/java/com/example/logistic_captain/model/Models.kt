@@ -4,13 +4,13 @@ import java.time.LocalDateTime
 
 data class LoginRequest(
     val employeeId: String,
-    val pin: String
+    val password: String
 )
 
 data class LoginResponse(
     val token: String,
-    val type: String = "Bearer",
-    val id: String,
+    val tokenType: String = "Bearer",
+    val expiresInMs: Long? = null,
     val employeeId: String,
     val name: String,
     val role: String
