@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.logistic_captain.data.AuthRepository
+import com.example.logistic_captain.data.RetrofitClient
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
@@ -13,7 +14,7 @@ import kotlinx.coroutines.launch
 class LoginViewModel(private val repository: AuthRepository) : ViewModel() {
 
     var employeeId by mutableStateOf("")
-    var pin by mutableStateOf("")  // kept as "pin" internally for UI binding compatibility
+    var pin by mutableStateOf("")
     var isLoading by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)
 
@@ -32,6 +33,11 @@ class LoginViewModel(private val repository: AuthRepository) : ViewModel() {
             try {
                 val response = repository.login(employeeId, pin)
                 if (response.isSuccessful && response.body()?.status == "success") {
+                    // Save the auth token for subsequent API calls
+                    val loginData = response.body()?.data
+                    loginData?.token?.let { token ->
+                        RetrofitClient.authToken = token
+                    }
                     _loginSuccess.emit(true)
                 } else {
                     errorMessage = response.body()?.message ?: "Login failed. Please check your credentials."

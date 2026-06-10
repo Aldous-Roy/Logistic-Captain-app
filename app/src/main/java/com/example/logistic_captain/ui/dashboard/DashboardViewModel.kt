@@ -39,14 +39,23 @@ class DashboardViewModel(private val repository: RouteRepository) : ViewModel() 
     fun startShift(lat: Double, lng: Double) {
         viewModelScope.launch {
             isLoading = true
+            errorMessage = null
             try {
                 val response = repository.checkIn(lat, lng)
                 if (response.isSuccessful) {
                     isShiftStarted = true
                     loadRoute()
+                } else {
+                    // If check-in endpoint returns error, still start shift locally
+                    // so the driver can see their route
+                    isShiftStarted = true
+                    loadRoute()
                 }
             } catch (e: Exception) {
-                errorMessage = e.message
+                // Network error - start shift locally anyway so driver isn't blocked
+                isShiftStarted = true
+                errorMessage = "Offline mode: ${e.message}"
+                loadRoute()
             } finally {
                 isLoading = false
             }
