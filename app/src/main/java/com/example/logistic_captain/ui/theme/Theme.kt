@@ -13,22 +13,22 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Blue80,
-    secondary = BlueGrey80,
-    tertiary = Orange80,
-    background = Color(0xFF1A1C1E),
-    surface = Color(0xFF1A1C1E),
-    onPrimary = Color(0xFF003366),
-    onSecondary = Color(0xFF003366),
-    onBackground = Color(0xFFE2E2E6),
-    onSurface = Color(0xFFE2E2E6),
+    primary = PremiumGreen,
+    secondary = PremiumGreenLight,
+    tertiary = PremiumGreen,
+    background = CreamBackground,
+    surface = SurfaceWhite,
+    onPrimary = Color.White,
+    onSecondary = Color.White,
+    onBackground = TextDark,
+    onSurface = TextDark,
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Blue40,
-    secondary = BlueGrey40,
-    tertiary = Orange40,
-    background = BackgroundGray,
+    primary = PremiumGreen,
+    secondary = PremiumGreenLight,
+    tertiary = PremiumGreen,
+    background = CreamBackground,
     surface = SurfaceWhite,
     onPrimary = Color.White,
     onSecondary = Color.White,
@@ -39,8 +39,8 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun LogisticCaptainTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    // Set dynamic color to false by default to ensure custom design system is applied
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
