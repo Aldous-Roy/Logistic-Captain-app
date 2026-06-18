@@ -49,6 +49,110 @@ fun DashboardScreen(
 
     LaunchedEffect(Unit) {
         viewModel.loadRoute()
+        viewModel.loadProfile()
+    }
+
+    val profile = viewModel.driverProfile
+    val isNewDriver = profile != null && profile.profileSetup == false
+
+    if (isNewDriver) {
+        var setupFirstName by remember { mutableStateOf(profile?.firstName?.takeIf { it != "Driver" } ?: "") }
+        var setupLastName by remember { mutableStateOf(profile?.lastName?.takeIf { it != "User" } ?: "") }
+        var setupPhone by remember { mutableStateOf(profile?.phoneNumber?.takeIf { it != "0000000000" } ?: "") }
+        var setupVehicleType by remember { mutableStateOf("VAN") }
+
+        AlertDialog(
+            onDismissRequest = { /* Prevent dismiss */ },
+            title = { Text("Welcome! Complete Profile Setup", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Please complete your details to enable route assignment.", color = PremiumGreenLight)
+                    OutlinedTextField(
+                        value = setupFirstName,
+                        onValueChange = { setupFirstName = it },
+                        label = { Text("First Name") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = setupLastName,
+                        onValueChange = { setupLastName = it },
+                        label = { Text("Last Name") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = setupPhone,
+                        onValueChange = { setupPhone = it },
+                        label = { Text("Phone Number") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Text("Vehicle Type", fontWeight = FontWeight.Bold, color = PremiumGreen)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        listOf("BIKE", "VAN").forEach { type ->
+                            val isSelected = setupVehicleType == type
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(if (isSelected) PremiumGreen else Color(0xFFE6E5C0))
+                                    .clickable { setupVehicleType = type }
+                                    .padding(vertical = 12.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = type,
+                                    color = if (isSelected) Color.White else PremiumGreen,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.updateProfile(setupFirstName, setupLastName, setupPhone, setupVehicleType)
+                    },
+                    enabled = setupFirstName.isNotBlank() && setupLastName.isNotBlank() && setupPhone.isNotBlank(),
+                    colors = ButtonDefaults.buttonColors(containerColor = PremiumGreen)
+                ) {
+                    Text("Complete Setup", color = Color.White)
+                }
+            }
+        )
+    }
+
+    var showLocationConfirmation by remember { mutableStateOf(false) }
+    if (showLocationConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showLocationConfirmation = false },
+            title = { Text("Confirm Location", fontWeight = FontWeight.Bold) },
+            text = { Text("Confirm you are currently at your shift starting location. Do you wish to start your shift?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showLocationConfirmation = false
+                        viewModel.startShift(12.9716, 77.5946)
+                        onStartShift()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = PremiumGreen)
+                ) {
+                    Text("Confirm & Start", color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLocationConfirmation = false }) {
+                    Text("Cancel", color = PremiumGreen)
+                }
+            }
+        )
     }
 
     val stops = viewModel.route?.stops ?: emptyList()
@@ -120,6 +224,9 @@ fun DashboardScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
+                                    val headerFirstName = viewModel.driverProfile?.firstName ?: "Driver"
+                                    val headerLastName = viewModel.driverProfile?.lastName ?: "User"
+                                    val headerInitials = (headerFirstName.take(1) + headerLastName.take(1)).uppercase()
                                     // User Avatar Circle
                                     Box(
                                         modifier = Modifier
@@ -129,7 +236,7 @@ fun DashboardScreen(
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Text(
-                                            text = "JS",
+                                            text = headerInitials,
                                             color = Color.White,
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 20.sp
@@ -144,7 +251,7 @@ fun DashboardScreen(
                                             fontWeight = FontWeight.Medium
                                         )
                                         Text(
-                                            text = "John Smith",
+                                            text = "$headerFirstName $headerLastName",
                                             color = Color.White,
                                             fontSize = 20.sp,
                                             fontWeight = FontWeight.Bold
@@ -208,10 +315,7 @@ fun DashboardScreen(
                             ShiftStatusCard(
                                 isShiftStarted = viewModel.isShiftStarted,
                                 isOnBreak = viewModel.isOnBreak,
-                                onStartShift = {
-                                    viewModel.startShift(0.0, 0.0)
-                                    onStartShift()
-                                },
+                                onStartShift = { showLocationConfirmation = true },
                                 onToggleBreak = { viewModel.toggleBreak() }
                             )
                         }
@@ -478,35 +582,118 @@ fun DashboardScreen(
                 }
 
                 "Profile" -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    val currentProfile = viewModel.driverProfile
+                    val firstNameVal = currentProfile?.firstName ?: "Driver"
+                    val lastNameVal = currentProfile?.lastName ?: "User"
+                    val phoneVal = currentProfile?.phoneNumber ?: "No phone"
+                    val empIdVal = currentProfile?.employeeId ?: ""
+                    val scoreVal = currentProfile?.performanceScore ?: 100
+                    val isEditable = currentProfile?.editable ?: true
+                    val initialsVal = (firstNameVal.take(1) + lastNameVal.take(1)).uppercase()
+
+                    var showEditDialog by remember { mutableStateOf(false) }
+
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center,
-                            modifier = Modifier.padding(24.dp)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp)
                         ) {
+                            Spacer(modifier = Modifier.height(20.dp))
                             Box(
                                 modifier = Modifier
-                                    .size(80.dp)
+                                    .size(100.dp)
                                     .clip(CircleShape)
                                     .background(PremiumGreen),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text("JS", color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Bold)
+                                Text(initialsVal, color = Color.White, fontSize = 36.sp, fontWeight = FontWeight.Bold)
                             }
                             Spacer(modifier = Modifier.height(16.dp))
-                            Text("John Smith", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextDark)
-                            Text("Driver ID: EMP-19348", fontSize = 14.sp, color = PremiumGreenLight)
+                            Text("$firstNameVal $lastNameVal", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = TextDark)
+                            Text("Employee ID: $empIdVal", fontSize = 14.sp, color = PremiumGreenLight)
+                            Spacer(modifier = Modifier.height(8.dp))
                             
-                            Spacer(modifier = Modifier.height(40.dp))
-                            
+                            Card(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color.White)
+                            ) {
+                                Column(modifier = Modifier.padding(16.dp)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text("Phone Number", color = PremiumGreenLight, fontWeight = FontWeight.Medium)
+                                        Text(phoneVal, color = TextDark, fontWeight = FontWeight.Bold)
+                                    }
+                                    Divider(modifier = Modifier.fillMaxWidth(), color = CreamBackground)
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text("Performance Score", color = PremiumGreenLight, fontWeight = FontWeight.Medium)
+                                        Text("$scoreVal / 100", color = PremiumGreen, fontWeight = FontWeight.Bold)
+                                    }
+                                    Divider(modifier = Modifier.fillMaxWidth(), color = CreamBackground)
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text("Vehicle Type", color = PremiumGreenLight, fontWeight = FontWeight.Medium)
+                                        Text(currentProfile?.vehicleType ?: "VAN", color = TextDark, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+
+                            if (!isEditable) {
+                                Text(
+                                    text = "Profile cannot be edited while you have pending routes for today.",
+                                    color = Color(0xFFC62828),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    modifier = Modifier.padding(bottom = 12.dp)
+                                )
+                            }
+
+                            Button(
+                                onClick = { showEditDialog = true },
+                                enabled = isEditable,
+                                modifier = Modifier.fillMaxWidth().height(50.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = PremiumGreen),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text("Edit Profile", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            }
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
                             Button(
                                 onClick = onLogout,
-                                modifier = Modifier.fillMaxWidth().height(56.dp),
+                                modifier = Modifier.fillMaxWidth().height(50.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC62828)),
-                                shape = RoundedCornerShape(16.dp)
+                                shape = RoundedCornerShape(12.dp)
                             ) {
                                 Text("Logout", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                             }
+                        }
+
+                        if (showEditDialog) {
+                            EditProfileDialog(
+                                currentFirstName = firstNameVal,
+                                currentLastName = lastNameVal,
+                                currentPhone = phoneVal,
+                                currentVehicleType = currentProfile?.vehicleType ?: "VAN",
+                                onDismiss = { showEditDialog = false },
+                                onConfirm = { fn, ln, ph, vt ->
+                                    viewModel.updateProfile(fn, ln, ph, vt) { success ->
+                                        if (success) {
+                                            showEditDialog = false
+                                        }
+                                    }
+                                }
+                            )
                         }
                     }
                 }
@@ -617,5 +804,89 @@ fun ShiftStatusCard(
             }
         }
     }
+}
+
+@Composable
+fun EditProfileDialog(
+    currentFirstName: String,
+    currentLastName: String,
+    currentPhone: String,
+    currentVehicleType: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String, String, String, String) -> Unit
+) {
+    var firstName by remember { mutableStateOf(currentFirstName) }
+    var lastName by remember { mutableStateOf(currentLastName) }
+    var phone by remember { mutableStateOf(currentPhone) }
+    var vehicleType by remember { mutableStateOf(currentVehicleType) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit Profile", fontWeight = FontWeight.Bold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = firstName,
+                    onValueChange = { firstName = it },
+                    label = { Text("First Name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = lastName,
+                    onValueChange = { lastName = it },
+                    label = { Text("Last Name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = phone,
+                    onValueChange = { phone = it },
+                    label = { Text("Phone Number") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Text("Vehicle Type", fontWeight = FontWeight.Bold, color = PremiumGreen)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    listOf("BIKE", "VAN").forEach { type ->
+                        val isSelected = vehicleType == type
+                        Box(
+                            modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(if (isSelected) PremiumGreen else Color(0xFFE6E5C0))
+                                    .clickable { vehicleType = type }
+                                    .padding(vertical = 12.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = type,
+                                color = if (isSelected) Color.White else PremiumGreen,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onConfirm(firstName, lastName, phone, vehicleType) },
+                enabled = firstName.isNotBlank() && lastName.isNotBlank() && phone.isNotBlank(),
+                colors = ButtonDefaults.buttonColors(containerColor = PremiumGreen)
+            ) {
+                Text("Save", color = Color.White)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = PremiumGreen)
+            }
+        }
+    )
 }
 

@@ -34,4 +34,16 @@ interface ApiService {
         @Part("customerSignature") signature: okhttp3.RequestBody?,
         @Part file: okhttp3.MultipartBody.Part
     ): Response<ApiResponse<PodUploadResponse>>
+
+    @POST("api/tracking/locations/bulk")
+    suspend fun bulkUpdateLocations(@Body locations: List<LocationUpdateRequest>): Response<ApiResponse<Unit>>
+
+    @POST("api/drivers/break")
+    suspend fun toggleBreak(@Body request: BreakRequest): Response<ApiResponse<Unit>>
+
+    @GET("api/drivers/me")
+    suspend fun getMyProfile(): Response<ApiResponse<DriverProfileResponse>>
+
+    @PUT("api/drivers/me")
+    suspend fun updateMyProfile(@Body request: DriverProfileUpdateRequest): Response<ApiResponse<DriverProfileResponse>>
 }

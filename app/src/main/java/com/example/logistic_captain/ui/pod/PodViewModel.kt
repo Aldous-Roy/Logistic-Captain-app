@@ -14,6 +14,7 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 
@@ -32,14 +33,24 @@ class PodViewModel(private val apiService: ApiService) : ViewModel() {
             isUploading = true
             errorMessage = null
             try {
-                val file = getFileFromUri(context, uri)
-                val requestFile = file.asRequestBody("image/jpeg".toMediaTypeOrNull())
-                val body = MultipartBody.Part.createFormData("file", file.name, requestFile)
-                val stopIdPart = stopId.toRequestBody("text/plain".toMediaTypeOrNull())
-
-                // Optional signature can be added here as another Part
+                val photoFile = getFileFromUri(context, uri)
+                val requestFile = photoFile.asRequestBody("image/jpeg".toMediaTypeOrNull())
+                val photoPart = MultipartBody.Part.createFormData("file", photoFile.name, requestFile)
                 
-                val response = apiService.uploadPod(stopIdPart, null, body)
+                val stopIdPart = stopId.toRequestBody("text/plain".toMediaTypeOrNull())
+                
+                // Convert signature bitmap to a proper PNG file and upload as image Part
+                val signaturePart = signatureBitmap?.let { bitmap ->
+                    val sigFile = File(context.cacheDir, "signature_${System.currentTimeMillis()}.png")
+                    FileOutputStream(sigFile).use { out ->
+                        bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+                    }
+                    val sigRequestFile = sigFile.asRequestBody("image/png".toMediaTypeOrNull())
+                    "data:image/png;base64,${android.util.Base64.encodeToString(sigFile.readBytes(), android.util.Base64.NO_WRAP)}"
+                        .toRequestBody("text/plain".toMediaTypeOrNull())
+                }
+
+                val response = apiService.uploadPod(stopIdPart, signaturePart, photoPart)
                 if (response.isSuccessful) {
                     uploadSuccess = true
                 } else {

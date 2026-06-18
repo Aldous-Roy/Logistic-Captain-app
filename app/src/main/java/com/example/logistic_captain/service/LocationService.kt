@@ -18,10 +18,16 @@ import java.util.concurrent.TimeUnit
 
 class LocationService : Service() {
 
+    companion object {
+        const val ACTION_PAUSE = "com.example.logistic_captain.PAUSE_TRACKING"
+        const val ACTION_RESUME = "com.example.logistic_captain.RESUME_TRACKING"
+    }
+
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var locationCallback: LocationCallback
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var isTracking = false
+    private var isPaused = false
 
     override fun onCreate() {
         super.onCreate()
@@ -29,8 +35,10 @@ class LocationService : Service() {
         
         locationCallback = object : LocationCallback() {
             override fun onLocationResult(locationResult: LocationResult) {
-                locationResult.lastLocation?.let { location ->
-                    handleLocationUpdate(location)
+                if (!isPaused) {
+                    locationResult.lastLocation?.let { location ->
+                        handleLocationUpdate(location)
+                    }
                 }
             }
         }
@@ -63,6 +71,21 @@ class LocationService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        when (intent?.action) {
+            ACTION_PAUSE -> {
+                isPaused = true
+                fusedLocationClient.removeLocationUpdates(locationCallback)
+                Log.d("LocationService", "Location tracking PAUSED (driver on break)")
+                return START_STICKY
+            }
+            ACTION_RESUME -> {
+                isPaused = false
+                requestLocationUpdates()
+                Log.d("LocationService", "Location tracking RESUMED")
+                return START_STICKY
+            }
+        }
+
         if (!isTracking) {
             startForegroundService()
             requestLocationUpdates()

@@ -37,7 +37,10 @@ data class StopResponse(
     val customerName: String,
     val packageCount: Int,
     val status: String, // PENDING, COMPLETED, ATTEMPTED_NO_ACCESS, ATTEMPTED_ABSENT
-    val eta: String?
+    val eta: String?,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    val serviceTimeMins: Int? = null
 )
 
 data class LocationUpdateRequest(
@@ -62,4 +65,32 @@ data class PodUploadResponse(
     val id: String,
     val deliveryId: String,
     val imageUrl: String
+)
+
+data class BreakRequest(
+    val onBreak: Boolean
+)
+
+data class DriverProfileResponse(
+    val driverId: String,
+    val employeeId: String,
+    val firstName: String,
+    val lastName: String,
+    val phoneNumber: String,
+    val maxPackageCapacity: Int,
+    val maxWeightCapacityKg: Double,
+    val active: Boolean,
+    val editable: Boolean? = null,
+    val profileSetup: Boolean? = null,
+    val performanceScore: Int? = null,
+    val vehicleType: String? = null
+)
+
+data class DriverProfileUpdateRequest(
+    val firstName: String,
+    val lastName: String,
+    val phoneNumber: String,
+    val maxPackageCapacity: Int? = null,
+    val maxWeightCapacityKg: Double? = null,
+    val vehicleType: String? = null
 )

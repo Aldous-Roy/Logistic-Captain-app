@@ -19,4 +19,8 @@ class RouteRepository(private val apiService: ApiService) {
     suspend fun checkOut(): Response<ApiResponse<Unit>> {
         return apiService.checkOut()
     }
+
+    suspend fun toggleBreak(isOnBreak: Boolean): Response<ApiResponse<Unit>> {
+        return apiService.toggleBreak(BreakRequest(isOnBreak))
+    }
 }

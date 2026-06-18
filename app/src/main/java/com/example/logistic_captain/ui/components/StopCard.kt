@@ -8,13 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.AccessTime
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Inventory
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Map
-import androidx.compose.material.icons.filled.PendingActions
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -38,6 +32,7 @@ fun StopCard(
 ) {
     val context = LocalContext.current
     var isExpanded by remember { mutableStateOf(false) }
+    var showExceptionDialog by remember { mutableStateOf(false) }
 
     Card(
         modifier = Modifier
@@ -140,7 +135,7 @@ fun StopCard(
                 }
             }
 
-            // If expanded (or always for pending items), show MAPS / DELIVER buttons
+            // Expanded Actions
             if (isExpanded || stop.status == "PENDING") {
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(
@@ -162,11 +157,8 @@ fun StopCard(
                             }
                             onNavigateClick()
                         },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(48.dp),
+                        modifier = Modifier.weight(1f).height(48.dp),
                         shape = RoundedCornerShape(12.dp),
-                        border = ButtonDefaults.outlinedButtonBorder.copy(width = 1.5.dp),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = PremiumGreen)
                     ) {
                         Icon(Icons.Default.Map, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -174,13 +166,24 @@ fun StopCard(
                         Text("MAPS", fontWeight = FontWeight.Bold)
                     }
 
-                    // DELIVER button
-                    if (stop.status == "PENDING") {
+                    if (stop.status == "PENDING" || stop.status == "IN_PROGRESS") {
+                        // EXCEPTION button
+                        OutlinedButton(
+                            onClick = { showExceptionDialog = true },
+                            modifier = Modifier.weight(1f).height(48.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFC62828)),
+                            border = ButtonDefaults.outlinedButtonBorder.copy(brush = androidx.compose.ui.graphics.SolidColor(Color(0xFFC62828)))
+                        ) {
+                            Icon(Icons.Default.Warning, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("FAIL", fontWeight = FontWeight.Bold)
+                        }
+
+                        // DELIVER button
                         Button(
                             onClick = onDeliverClick,
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(48.dp),
+                            modifier = Modifier.weight(1f).height(48.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = PremiumGreen),
                             shape = RoundedCornerShape(12.dp)
                         ) {
@@ -191,6 +194,37 @@ fun StopCard(
             }
         }
     }
+
+    if (showExceptionDialog) {
+        AlertDialog(
+            onDismissRequest = { showExceptionDialog = false },
+            title = { Text("Mark Stop as Failed") },
+            text = {
+                Column {
+                    Text("Select a reason for the delivery failure:")
+                    Spacer(modifier = Modifier.height(16.dp))
+                    val reasons = listOf("ATTEMPTED_NO_ACCESS", "ATTEMPTED_ABSENT")
+                    reasons.forEach { reason ->
+                        Button(
+                            onClick = {
+                                onStatusUpdate(reason)
+                                showExceptionDialog = false
+                            },
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Gray.copy(alpha = 0.1f), contentColor = TextDark)
+                        ) {
+                            Text(reason.replace("_", " "))
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showExceptionDialog = false }) {
+                    Text("CANCEL")
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -199,6 +233,8 @@ fun StopStatusChip(status: String) {
         "COMPLETED" -> Triple(Color(0xFFE2F4E3), Color(0xFF2E7D32), "completed")
         "PENDING" -> Triple(Color(0xFFFFF3E0), Color(0xFFE65100), "pending")
         "IN_PROGRESS" -> Triple(Color(0xFFE8F5E9), Color(0xFF2E7D32), "in progress")
+        "ATTEMPTED_NO_ACCESS" -> Triple(Color(0xFFFFEBEE), Color(0xFFC62828), "no access")
+        "ATTEMPTED_ABSENT" -> Triple(Color(0xFFFFEBEE), Color(0xFFC62828), "absent")
         else -> Triple(Color(0xFFFFEBEE), Color(0xFFC62828), status.lowercase())
     }
 
